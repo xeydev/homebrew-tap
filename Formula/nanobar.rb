@@ -11,6 +11,7 @@ class Nanobar < Formula
   def install
     libexec.install "libexec/NanoBar"
     libexec.install "libexec/NowPlayingHelper"
+    libexec.install "libexec/libNanoBarPluginAPI.dylib"
     (libexec/"Plugins").mkpath
     Dir["libexec/Plugins/*.bundle"].each do |bundle|
       (libexec/"Plugins").install bundle
