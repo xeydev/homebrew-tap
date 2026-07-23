@@ -6,7 +6,9 @@ class Nanobar < Formula
   license "MIT"
   head "https://github.com/xeydev/nanobar.git", branch: "main"
 
-  depends_on xcode: ["16.0", :build]
+  # Sources adopt the macOS 26 (liquid glass) SDK APIs behind availability
+  # guards, so building needs the macOS 26 SDK even on Sequoia.
+  depends_on xcode: ["26.0", :build]
   depends_on macos: :sequoia
 
   def install

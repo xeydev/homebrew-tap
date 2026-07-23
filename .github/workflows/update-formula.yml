@@ -57,6 +57,13 @@ jobs:
       contents: write
 
     steps:
+      # Sources need the macOS 26 SDK; the macos-15 image defaults to Xcode 16.
+      - name: Select Xcode 26
+        run: |
+          xcode=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$xcode"
+          swift --version
+
       - name: Build bottle
         run: |
           brew tap xeydev/tap
