@@ -12,6 +12,11 @@ on:
         required: true
         type: string
 
+# brew refuses to operate on formulae from untrusted third-party taps in
+# non-interactive sessions; this is our own tap.
+env:
+  HOMEBREW_NO_REQUIRE_TAP_TRUST: "1"
+
 jobs:
   bump:
     runs-on: ubuntu-latest
