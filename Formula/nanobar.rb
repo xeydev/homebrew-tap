@@ -6,6 +6,13 @@ class Nanobar < Formula
   license "MIT"
   head "https://github.com/xeydev/nanobar.git", branch: "main"
 
+  bottle do
+    root_url "https://github.com/xeydev/homebrew-tap/releases/download/nanobar-0.3.0"
+    rebuild 1
+    sha256 cellar: :any_skip_relocation, arm64_tahoe:   "ab50e2e443ab46bed8c063ae8c330926d0c402676ec2d4a848173b370a09b93e"
+    sha256 cellar: :any_skip_relocation, arm64_sequoia: "a0de953c8c0337056f5e7a70e0be41cced86fb66251bc9d8d5180bfa0d6ace7c"
+  end
+
   # Sources adopt the macOS 26 (liquid glass) SDK APIs behind availability
   # guards, so building needs the macOS 26 SDK even on Sequoia.
   depends_on xcode: ["26.0", :build]
