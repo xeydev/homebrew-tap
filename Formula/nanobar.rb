@@ -1,8 +1,8 @@
 class Nanobar < Formula
   desc "Minimal macOS status bar app powered by SwiftUI plugins"
   homepage "https://github.com/xeydev/nanobar"
-  version "0.2.0"
-  sha256 "9a7ebca2df9373e683be9331f2e188edf32e2a9fd9553928391edb546db81efa"
+  version "0.3.0"
+  sha256 "ea8bb77397c8519e592a3f6b4785f3d9768544de32493c9be7bd6be3d3a0bedb"
   url "https://github.com/xeydev/nanobar/releases/download/v#{version}/nanobar-#{version}-arm64.tar.gz"
 
   depends_on arch: :arm64
