@@ -13,7 +13,7 @@ on:
         type: string
 
 jobs:
-  update:
+  bump:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -24,8 +24,11 @@ jobs:
 
       - name: Bump formula
         run: |
+          # Drop the previous bottle block; the jobs below build and merge a
+          # fresh one for the new version.
+          sed -i '/^  bottle do$/,/^  end$/d' Formula/nanobar.rb
           sed -i -E 's|(archive/refs/tags/v)[0-9]+\.[0-9]+\.[0-9]+|\1${{ inputs.version }}|' Formula/nanobar.rb
-          sed -i 's/sha256 ".*"/sha256 "${{ inputs.sha256 }}"/' Formula/nanobar.rb
+          sed -i 's/^  sha256 ".*"/  sha256 "${{ inputs.sha256 }}"/' Formula/nanobar.rb
 
       - name: Verify
         run: |
@@ -37,5 +40,89 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Formula/nanobar.rb
-          git commit -m "nanobar ${{ inputs.version }}"
-          git push
+          if git diff --cached --quiet; then
+            echo "Formula already up to date"
+          else
+            git commit -m "nanobar ${{ inputs.version }}"
+            git push
+          fi
+
+  bottle:
+    needs: bump
+    strategy:
+      matrix:
+        os: [macos-15, macos-26]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Build bottle
+        run: |
+          brew tap xeydev/tap
+          brew install --build-bottle xeydev/tap/nanobar
+          brew bottle --json \
+            --root-url="https://github.com/${GITHUB_REPOSITORY}/releases/download/nanobar-${{ inputs.version }}" \
+            xeydev/tap/nanobar
+          # brew writes the bottle with a doubled dash; rename to the filename
+          # the formula's bottle block requests at install time.
+          json=$(ls nanobar--*.bottle.json)
+          mv "$(jq -r '.[].bottle.tags[].local_filename' "$json")" \
+             "$(jq -r '.[].bottle.tags[].filename' "$json")"
+
+      - name: Upload bottle to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "nanobar-${{ inputs.version }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "nanobar ${{ inputs.version }} bottles" \
+            --notes "Prebuilt Homebrew bottles for nanobar ${{ inputs.version }}." \
+            || true
+          gh release upload "nanobar-${{ inputs.version }}" \
+            nanobar-*.bottle*.tar.gz \
+            --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Save bottle JSON
+        uses: actions/upload-artifact@v4
+        with:
+          name: bottle-json-${{ matrix.os }}
+          path: nanobar--*.bottle.json
+
+  merge:
+    needs: bottle
+    runs-on: macos-26
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pull bump commit
+        run: git pull --rebase origin "$GITHUB_REF_NAME"
+
+      - name: Download bottle JSONs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bottle-json-*
+          merge-multiple: true
+          path: bottles
+
+      - name: Merge bottle block into formula
+        run: |
+          brew tap xeydev/tap
+          brew bottle --merge --write --no-commit bottles/*.bottle.json
+          cp "$(brew --repository xeydev/tap)/Formula/nanobar.rb" Formula/nanobar.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/nanobar.rb
+          if git diff --cached --quiet; then
+            echo "Bottle block already up to date"
+          else
+            git commit -m "nanobar ${{ inputs.version }} bottles"
+            git push
+          fi
