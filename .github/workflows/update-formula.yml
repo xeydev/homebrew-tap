@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       sha256:
-        description: 'SHA256 of the release tarball'
+        description: 'SHA256 of the GitHub source tarball for the tag'
         required: true
         type: string
 
@@ -24,12 +24,12 @@ jobs:
 
       - name: Bump formula
         run: |
-          sed -i 's/version ".*"/version "${{ inputs.version }}"/' Formula/nanobar.rb
+          sed -i -E 's|(archive/refs/tags/v)[0-9]+\.[0-9]+\.[0-9]+|\1${{ inputs.version }}|' Formula/nanobar.rb
           sed -i 's/sha256 ".*"/sha256 "${{ inputs.sha256 }}"/' Formula/nanobar.rb
 
       - name: Verify
         run: |
-          grep 'version' Formula/nanobar.rb
+          grep 'url' Formula/nanobar.rb
           grep 'sha256' Formula/nanobar.rb
 
       - name: Commit and push

@@ -1,36 +1,31 @@
 class Nanobar < Formula
-  desc "Minimal macOS status bar app powered by SwiftUI plugins"
+  desc "Minimal macOS status bar companion for AeroSpace"
   homepage "https://github.com/xeydev/nanobar"
-  version "0.3.0"
-  sha256 "ea8bb77397c8519e592a3f6b4785f3d9768544de32493c9be7bd6be3d3a0bedb"
-  url "https://github.com/xeydev/nanobar/releases/download/v#{version}/nanobar-#{version}-arm64.tar.gz"
+  url "https://github.com/xeydev/nanobar/archive/refs/tags/v0.3.0.tar.gz"
+  sha256 "c68b79bb80b96a6f0c4d1c9734b95d333d083db2387a28721c5cf8e4472a6ee7"
+  license "MIT"
+  head "https://github.com/xeydev/nanobar.git", branch: "main"
 
-  depends_on arch: :arm64
+  depends_on xcode: ["16.0", :build]
   depends_on macos: :sequoia
 
   def install
-    libexec.install "libexec/NanoBar"
-    libexec.install "libexec/NowPlayingHelper"
-    libexec.install "libexec/libNanoBarPluginAPI.dylib"
-    (libexec/"Plugins").mkpath
-    Dir["libexec/Plugins/*.bundle"].each do |bundle|
-      (libexec/"Plugins").install bundle
-    end
-    (bin/"nanobar").write_env_script libexec/"NanoBar", {}
+    system "swift", "build", "--disable-sandbox", "-c", "release"
+    bin.install ".build/release/NanoBar" => "nanobar"
   end
 
   service do
-    run opt_libexec/"NanoBar"
+    run opt_bin/"nanobar"
     keep_alive true
+    run_at_load true
     log_path "/tmp/nanobar.log"
     error_log_path "/tmp/nanobar.err"
-    run_at_load true
     environment_variables PATH: std_service_path_env
   end
 
   def caveats
     <<~EOS
-      Config: ~/.config/nanobar/config.toml (created on first run if absent)
+      Config: ~/.config/nanobar/config (created on first run if absent)
 
       Start:  brew services start nanobar
       Stop:   brew services stop nanobar
@@ -39,8 +34,6 @@ class Nanobar < Formula
   end
 
   test do
-    assert_predicate libexec/"NanoBar", :executable?
-    assert_predicate libexec/"NowPlayingHelper", :executable?
-    assert_predicate libexec/"Plugins", :directory?
+    assert_predicate bin/"nanobar", :executable?
   end
 end
